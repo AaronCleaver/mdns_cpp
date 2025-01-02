@@ -3,6 +3,7 @@
 #include <functional>
 #include <string>
 #include <thread>
+#include <set>
 
 #include "mdns_cpp/defs.hpp"
 
@@ -25,6 +26,8 @@ class mDNS {
 
   void executeQuery(const std::string &service);
   void executeDiscovery();
+
+  std::set<std::tuple<std::string, std::string>> konos_hosts;
 
  private:
   void runMainLoop();

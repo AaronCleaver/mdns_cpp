@@ -255,9 +255,16 @@ static int query_callback(int sock, const struct sockaddr *from, size_t addrlen,
   (void)sizeof(name_length);
   (void)sizeof(user_data);
 
+  mDNS *mdns = static_cast<mDNS*>(user_data);
+
   static char addrbuffer[64]{};
   static char namebuffer[256]{};
   static char entrybuffer[256]{};
+  
+  char host_ip[NI_MAXHOST] = {0};
+  char service[NI_MAXSERV] = {0};
+  const int ret = getnameinfo((const struct sockaddr *)from, (socklen_t)addrlen, host_ip, NI_MAXHOST, service, NI_MAXSERV,
+                              NI_NUMERICSERV | NI_NUMERICHOST);
 
   const auto fromaddrstr = ipAddressToString(addrbuffer, sizeof(addrbuffer), from, addrlen);
   const char *entrytype =
@@ -273,6 +280,9 @@ static int query_callback(int sock, const struct sockaddr *from, size_t addrlen,
 
     snprintf(str_buffer, str_capacity, "%s : %s %.*s PTR %.*s rclass 0x%x ttl %u length %d\n", fromaddrstr.data(),
              entrytype, MDNS_STRING_FORMAT(entrystr), MDNS_STRING_FORMAT(namestr), rclass, ttl, (int)record_length);
+
+    std::string s(namestr.str, namestr.length - 1);
+    if (mdns) mdns->konos_hosts.insert(std::make_tuple(s, host_ip));
   } else if (rtype == MDNS_RECORDTYPE_SRV) {
     mdns_record_srv_t srv =
         mdns_record_parse_srv(data, size, record_offset, record_length, namebuffer, sizeof(namebuffer));
@@ -469,7 +479,7 @@ void mDNS::executeQuery(const std::string &service) {
 
   size_t capacity = 2048;
   void *buffer = malloc(capacity);
-  void *user_data = 0;
+  void *user_data = this;
   size_t records;
 
   MDNS_LOG << "Sending mDNS query: " << service << "\n";
