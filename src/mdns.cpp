@@ -469,6 +469,7 @@ void mDNS::executeQuery(const std::string &service) {
   int sockets[32];
   int query_id[32];
   int num_sockets = openClientSockets(sockets, sizeof(sockets) / sizeof(sockets[0]), 0);
+  konos_hosts.clear();
 
   if (num_sockets <= 0) {
     const auto msg = "Failed to open any client sockets";
